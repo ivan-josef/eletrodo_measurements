@@ -39,4 +39,6 @@ for f in os.listdir(dataset):
         output_path = os.path.join(output,f)
         cv2.imwrite(output_path,frame_anotated)
 
+print(alturas_dict)
+
 

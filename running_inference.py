@@ -71,6 +71,7 @@ def detect_model(model, path):
             for class_id, conf in zip(results.class_id,results.confidence)
                   ]
 
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         annotated_frame = sv.MaskAnnotator().annotate(img,results)
         annotated_frame = sv.BoxAnnotator().annotate(annotated_frame,results)
         annotated_frame = sv.LabelAnnotator().annotate(annotated_frame,results,labels)
