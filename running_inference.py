@@ -25,8 +25,6 @@ def detect_model(model, path):
     data = separate_img(path)
     H,W = data[0].shape[:2]
     
-
-
     modelo = RFDETRSegMedium(pretrain_weights=model)
     modelo.optimize_for_inference()
 
@@ -38,13 +36,14 @@ def detect_model(model, path):
 
         scale_y = H / 640
         scale_x = W / 640
-        
-        boxes = results.xyxy.copy()
 
-        boxes[:, [0, 2]] *= scale_x
-        boxes[:, [1, 3]] *= scale_y
+        if results.xyxy is not None:        
+            boxes = results.xyxy.copy()
 
-        results.xyxy = boxes
+            boxes[:, [0, 2]] *= scale_x
+            boxes[:, [1, 3]] *= scale_y
+
+            results.xyxy = boxes
 
 
         if results.mask is not None:
