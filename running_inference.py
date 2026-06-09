@@ -25,7 +25,7 @@ def detect_model(model, path):
     data = separate_img(path)
     H,W = data[0].shape[:2]
     
-    modelo = RFDETRSegMedium(pretrain_weights=model)
+    modelo = RFDETRSegMedium(pretrain_weights=model,resolution=1296)
     modelo.optimize_for_inference()
 
 
