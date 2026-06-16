@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 def debug():
-    q = input('nugget ou centralizacao?: ')
+    q = input('nugget,centralizacao ou rugosidade?: ')
     if q.lower() == 'nugget':
         imgs = nugget()
         for img in imgs:
@@ -23,6 +23,10 @@ def debug():
 
             cv2.imshow('mascaras',resized)
             cv2.waitKey(0)
+    elif q.lower() == 'rugosidade':
+        dic = rugosidade()
+        for k,v in dic.items():
+            print(f'para {k} rugosidade foi {v}')
 
 
 
@@ -87,34 +91,56 @@ def centralizacao():
     return results_centralizacao
 
 def rugosidade():
+    results_rugosidade = {}
     for result in results_all:
         filename = result["filename"]
         boxes = result["boxes"]
-        annotated_frame = result["annotated_frame"]
 
-        zeros_mak = np.zeros(annotated_frame.shape,dtype=np.uint8)
         maior_bb = boxes[0]
         x1,y1,x2,y2 = maior_bb
         meio_y = (y1+y2) // 2
 
-        # ponto1 = (int(x1),int(meio_y))
-        # ponto2 = (int(x2),int(meio_y))
+        img_teste = os.path.join(dataset,filename)
+        teste_img = cv2.imread(img_teste)
         
-        img_teste = cv2.imread(img)
-        gray = cv2.cvtColor(img_teste, cv2.COLOR_BGR2GRAY)
-        linha_pixels = gray[int(meio_y),int(x1):int(x2)]
+        gray = cv2.cvtColor(teste_img, cv2.COLOR_BGR2GRAY)
+        gaus = cv2.GaussianBlur(gray,(31,31),0)
+
+        linha_pixels = gaus[int(meio_y),int(x1):int(x2)]
+
+
+        grad = np.abs(np.diff(linha_pixels))
+
+        grad_mean = np.mean(grad)
+        grad_std = np.std(grad)
+
+        # print(f'{filename}')
+        # print(f"Grad mean: {grad_mean}")
+        # print(f"Grad std: {grad_std}")
+
+        
+        rugos = ''
+        if grad_mean > 48:
+            rugos = True
+            results_rugosidade[filename] = rugos
+        elif grad_mean < 38:
+            rugos = False
+            results_rugosidade[filename] = rugos
+        else:
+            rugos = None
+            results_rugosidade[filename] = rugos
     
+        plt.figure()
         plt.plot(linha_pixels)
         plt.title("Perfil de intensidade no eixo central")
         plt.xlabel("Posição (pixels)")
         plt.ylabel("Intensidade (0-255)")
-        plt.show()
-        
-        cv2.circle(img_teste,(int(x1),int(meio_y)),5,(255,0,0),5)
-        cv2.circle(img_teste,(int(x2),int(meio_y)),5,(255,0,0),5)
+        plt.savefig(f'{filename}')
+        plt.close()
 
-        cv2.imshow('teste',img_teste)
-        cv2.waitKey(0)
+    return results_rugosidade
+
+
         
 
 
@@ -122,15 +148,15 @@ def rugosidade():
 
 
 dataset = 'test'
-img = 'test/rugos.jpg'
+img = 'test/ct16x61778873235.5533102.jpg'
 model = 'rf-detr_model_top-view.pth'
-results_all = ri.detect_model(model,img)
+results_all = ri.detect_model(model,dataset)
 
 output = 'output'
 os.makedirs(output,exist_ok=True)
 
 
-rugosidade()
+debug()
 cv2.destroyAllWindows()
 
         
