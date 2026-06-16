@@ -26,7 +26,7 @@ def debug():
     elif q.lower() == 'rugosidade':
         dic = rugosidade()
         for k,v in dic.items():
-            print(f'para {k} rugosidade foi {v}')
+            print(f'para {k} rugosidade é {v}')
 
 
 
@@ -45,10 +45,9 @@ def nugget():
     results_nugget = []
     for result in results_all:
         filename = result["filename"]
-        annotated_frame = result["annotated_frame"]
         masks = result["masks"]
         
-        zeros_mask = np.zeros(annotated_frame.shape,dtype=np.uint8)
+        zeros_mask = np.zeros(ref.shape,dtype=np.uint8)
         for i, mask in enumerate(masks):
             result_img = zeros_mask.copy()
             result_img[mask] = (255,0,0)
@@ -67,7 +66,7 @@ def centralizacao():
         annotated_frame = result["annotated_frame"]
 
 
-        zeros_mak = np.zeros(annotated_frame.shape,dtype=np.uint8)
+        zeros_mak = np.zeros(ref.shape,dtype=np.uint8)
 
         for i,mask in enumerate(masks):
             if i == 0:
@@ -141,22 +140,48 @@ def rugosidade():
     return results_rugosidade
 
 
+def rebarba():
+    for result in results_all:
+        masks = result['masks']
+        filename = result['filename']
         
+        zeros_mask = np.zeros(ref.shape,dtype=np.uint8)
+        for i,mask in enumerate(masks):
+            if i == 0:
+                zeros_mask[mask] = (255,0,0)
+        edges = cv2.Canny(zeros_mask, 50, 150)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contour = max(contours,key=cv2.contourArea)
+        (x_axis,y_axis),radius = cv2.minEnclosingCircle(contour)
+        center = (int(x_axis),int(y_axis))
+        radius = int(radius)
+
+        draw_img = np.zeros(ref.shape,dtype=np.uint8)
+        cv2.drawContours(draw_img, [contour], -1, (255, 0, 0), 2)
+        cv2.circle(ref,center,radius,(0,255,0),2)
+        cv2.circle(ref,center,radius+50,(0,0,255),2)
+        cv2.imshow('teste',ref)
+        cv2.waitKey(0)
+
+
+
+
 
 
         
 
 
 dataset = 'test'
-img = 'test/ct16x61778873235.5533102.jpg'
+img = 'test/ct1661778873155.0512855.jpg'
+ref = cv2.imread(img)
 model = 'rf-detr_model_top-view.pth'
-results_all = ri.detect_model(model,dataset)
+results_all = ri.detect_model(model,img)
 
 output = 'output'
 os.makedirs(output,exist_ok=True)
 
 
-debug()
+rebarba()
 cv2.destroyAllWindows()
 
         
