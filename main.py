@@ -39,6 +39,38 @@ def sobel_edge_detector(img):
     grad_norm = (grad * 255 / grad.max()).astype(np.uint8)
     return grad_norm
 
+def fit_circle_least_squares(contour):
+    pts = contour.reshape(-1, 2)
+
+    x = pts[:, 0]
+    y = pts[:, 1]
+
+    x_m = np.mean(x)
+    y_m = np.mean(y)
+
+    u = x - x_m
+    v = y - y_m
+
+    Suu = np.sum(u*u)
+    Suv = np.sum(u*v)
+    Svv = np.sum(v*v)
+    Suuu = np.sum(u*u*u)
+    Svvv = np.sum(v*v*v)
+    Suvv = np.sum(u*v*v)
+    Svuu = np.sum(v*u*u)
+
+    A = np.array([[Suu, Suv], [Suv, Svv]])
+    B = np.array([(Suuu + Suvv)/2.0, (Svvv + Svuu)/2.0])
+
+    uc, vc = np.linalg.solve(A, B)
+
+    xc = x_m + uc
+    yc = y_m + vc
+
+    radius = np.mean(np.sqrt((x - xc)**2 + (y - yc)**2))
+
+    return (int(xc), int(yc)), int(radius)
+
 
 
 def nugget():
@@ -107,15 +139,15 @@ def rugosidade():
 
         linha_pixels = gaus[int(meio_y),int(x1):int(x2)]
 
-
+        
         grad = np.abs(np.diff(linha_pixels))
 
         grad_mean = np.mean(grad)
         grad_std = np.std(grad)
 
-        # print(f'{filename}')
-        # print(f"Grad mean: {grad_mean}")
-        # print(f"Grad std: {grad_std}")
+        print(f'{filename}')
+        print(f"Grad mean: {grad_mean}")
+        print(f"Grad std: {grad_std}")
 
         
         rugos = ''
@@ -149,15 +181,20 @@ def rebarba():
         for i,mask in enumerate(masks):
             if i == 0:
                 zeros_mask[mask] = (255,0,0)
-        edges = cv2.Canny(zeros_mask, 50, 150)
+
+        zeros_mask = cv2.GaussianBlur(zeros_mask, (5,5), 0)
+        edges = cv2.Canny(zeros_mask,50,150)
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contour = max(contours,key=cv2.contourArea)
-        (x_axis,y_axis),radius = cv2.minEnclosingCircle(contour)
-        center = (int(x_axis),int(y_axis))
-        radius = int(radius)
+        pts = contour.reshape(-1, 2)
+        (x_axis,y_axis),_ = fit_circle_least_squares(contour)
+        distances = np.sqrt((pts[:,0] - x_axis)**2 + (pts[:,1] - y_axis)**2)
+        threshold = np.percentile(distances, 70)
+        filtered_pts = pts[distances < threshold]
+        center, radius = fit_circle_least_squares(filtered_pts)
 
         draw_img = np.zeros(ref.shape,dtype=np.uint8)
-        cv2.drawContours(draw_img, [contour], -1, (255, 0, 0), 2)
+        cv2.drawContours(ref, [contour], -1, (255, 0, 0), 2)
         cv2.circle(ref,center,radius,(0,255,0),2)
         cv2.circle(ref,center,radius+50,(0,0,255),2)
         cv2.imshow('teste',ref)
@@ -172,7 +209,7 @@ def rebarba():
 
 
 dataset = 'test'
-img = 'test/ct1661778873155.0512855.jpg'
+img = 'test/polig_rugos_foradcentro.jpg'
 ref = cv2.imread(img)
 model = 'rf-detr_model_top-view.pth'
 results_all = ri.detect_model(model,img)
