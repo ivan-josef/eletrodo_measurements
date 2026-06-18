@@ -193,10 +193,14 @@ def rebarba():
         filtered_pts = pts[distances < threshold]
         center, radius = fit_circle_least_squares(filtered_pts)
 
-        draw_img = np.zeros(ref.shape,dtype=np.uint8)
-        cv2.drawContours(ref, [contour], -1, (255, 0, 0), 2)
-        cv2.circle(ref,center,radius,(0,255,0),2)
-        cv2.circle(ref,center,radius+50,(0,0,255),2)
+        draw_img = np.zeros(ref.shape[:2],dtype=np.uint8)
+
+        #cv2.drawContours(ref, [contour], -1, (255, 0, 0), 2)
+        #cv2.circle(draw_img,center,radius,(0,255,0),2)
+        cv2.circle(draw_img,center,radius+50,255,2)
+        yp,xp = np.where(draw_img)
+
+
         cv2.imshow('teste',ref)
         cv2.waitKey(0)
 
@@ -209,7 +213,7 @@ def rebarba():
 
 
 dataset = 'test'
-img = 'test/polig_rugos_foradcentro.jpg'
+img = 'test/rugos.jpg'
 ref = cv2.imread(img)
 model = 'rf-detr_model_top-view.pth'
 results_all = ri.detect_model(model,img)
