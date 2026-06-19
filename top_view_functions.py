@@ -7,37 +7,40 @@ import matplotlib.pyplot as plt
 
 
 def debug():
-    q = input('nugget,centralizacao ou rugosidade?: ')
-    if q.lower() == 'nugget':
-        imgs = nugget()
-        for img in imgs:
-            resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
+    while True:
+        q = input('nugget,centralizacao, rugosidade ou rebarba?: ')
+        if q.lower() == 'nugget':
+            imgs = nugget()
+            for img in imgs:
+                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
 
-            cv2.imshow('mascaras',resized)
-            cv2.imshow('bordas',sobel_edge_detector(resized))
-            cv2.waitKey(0)
-    elif q.lower() == 'centralizacao':
-        imgs = centralizacao()
-        for img in imgs:
-            resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
+                cv2.imshow('mascaras',resized)
+                cv2.imshow('bordas',cv2.Canny(resized,50,150))
+                cv2.waitKey(0)
+        elif q.lower() == 'centralizacao':
+            imgs = centralizacao()
+            for img in imgs:
+                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
 
-            cv2.imshow('mascaras',resized)
-            cv2.waitKey(0)
-    elif q.lower() == 'rugosidade':
-        dic = rugosidade()
-        for k,v in dic.items():
-            print(f'para {k} rugosidade é {v}')
+                cv2.imshow('mascaras',resized)
+                cv2.waitKey(0)
+        elif q.lower() == 'rugosidade':
+            dic = rugosidade()
+            for k,v in dic.items():
+                print(f'para {k} rugosidade é {v}')
+        elif q.lower() == 'rebarba':
+            imgs = rebarba()
+            for img in imgs:
+                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)
+                cv2.imshow('rebarbas',resized)
+                cv2.waitKey(0)
+        elif ord('q'):
+            break
+        else:
+            continue
+        cv2.destroyAllWindows()
 
 
-
-
-def sobel_edge_detector(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0)
-    grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1)
-    grad = np.sqrt(grad_x**2 + grad_y**2)
-    grad_norm = (grad * 255 / grad.max()).astype(np.uint8)
-    return grad_norm
 
 def fit_circle_least_squares(contour):
     pts = contour.reshape(-1, 2)
@@ -173,6 +176,7 @@ def rugosidade():
 
 
 def rebarba():
+    results_rebarba = []
     for result in results_all:
         masks = result['masks']
         filename = result['filename']
@@ -189,20 +193,52 @@ def rebarba():
         pts = contour.reshape(-1, 2)
         (x_axis,y_axis),_ = fit_circle_least_squares(contour)
         distances = np.sqrt((pts[:,0] - x_axis)**2 + (pts[:,1] - y_axis)**2)
-        threshold = np.percentile(distances, 70)
+        threshold = np.percentile(distances, 80)
         filtered_pts = pts[distances < threshold]
         center, radius = fit_circle_least_squares(filtered_pts)
 
-        draw_img = np.zeros(ref.shape[:2],dtype=np.uint8)
+        # 1. Anel fino na posição radius+50
+        ring_mask = np.zeros(ref.shape[:2], dtype=np.uint8)
+        cv2.circle(ring_mask, center, radius + 50, 255, 8)  # espessura do anel
 
-        #cv2.drawContours(ref, [contour], -1, (255, 0, 0), 2)
-        #cv2.circle(draw_img,center,radius,(0,255,0),2)
-        cv2.circle(draw_img,center,radius+50,255,2)
-        yp,xp = np.where(draw_img)
+        # 2. Estima a cor do background (cantos da imagem, longe do objeto)
+        h, w = ref.shape[:2]
+        margin = 30
+        corners = [
+            ref[0:margin, 0:margin],
+            ref[0:margin, w-margin:w],
+            ref[h-margin:h, 0:margin],
+            ref[h-margin:h, w-margin:w],
+        ]
+        bg_color = np.mean([c.mean(axis=(0,1)) for c in corners], axis=0)  # BGR médio
 
+        # 3. Diferença de cor dos pixels no anel vs background
+        ring_pixels_coords = np.where(ring_mask > 0)
+        ring_pixels = ref[ring_pixels_coords].astype(np.float32)  # shape (N, 3)
 
-        cv2.imshow('teste',ref)
-        cv2.waitKey(0)
+        diff = np.linalg.norm(ring_pixels - bg_color, axis=1)  # distância euclidiana no espaço BGR
+
+        # 4. Pixels muito diferentes do background = objeto = rebarba
+        color_threshold = 30  # ajuste conforme a imagem
+        burr_mask_flat = diff > color_threshold
+        burr_count = burr_mask_flat.sum()
+        has_burrs = burr_count > 10  # mínimo de pixels para evitar ruído
+
+        # 5. Reconstrói máscara de rebarbas para visualização
+        burr_viz = np.zeros(ref.shape[:2], dtype=np.uint8)
+        ys, xs = ring_pixels_coords
+        burr_viz[ys[burr_mask_flat], xs[burr_mask_flat]] = 255
+
+        # Visualização
+        draw_img = ref.copy()
+        cv2.circle(draw_img, center, radius,      (0, 255, 0), 2)
+        cv2.circle(draw_img, center, radius + 50, (0, 0, 255), 2)
+        draw_img[burr_viz > 0] = (0, 255, 255)  # rebarba em amarelo
+
+        print(f"Rebarbas: {'SIM' if has_burrs else 'NÃO'} ({burr_count} pixels no anel)")
+        results_rebarba.append(draw_img)
+
+    return results_rebarba
 
 
 
@@ -213,7 +249,7 @@ def rebarba():
 
 
 dataset = 'test'
-img = 'test/rugos.jpg'
+img = 'test/ct1661778873155.0512855.jpg'
 ref = cv2.imread(img)
 model = 'rf-detr_model_top-view.pth'
 results_all = ri.detect_model(model,img)
@@ -222,7 +258,7 @@ output = 'output'
 os.makedirs(output,exist_ok=True)
 
 
-rebarba()
+debug()
 cv2.destroyAllWindows()
 
         
