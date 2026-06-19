@@ -22,12 +22,13 @@ def separate_img(path):
     return images
                         
 
-def detect_model(model, path):
+def detect_model(model, path,res):
     
     data = separate_img(path)
-
-    
-    modelo = RFDETRSegMedium(pretrain_weights=model,resolution=1296)
+    if res is None:
+        modelo = RFDETRSegMedium(pretrain_weights=model)
+    else:
+        modelo = RFDETRSegMedium(pretrain_weights=model,resolution=res)
     modelo.optimize_for_inference()
 
     results_all = []
@@ -90,3 +91,6 @@ def detect_model(model, path):
         })
         
     return results_all
+
+if __name__ == "__main__":
+    detect_model()

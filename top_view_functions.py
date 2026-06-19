@@ -242,24 +242,17 @@ def rebarba():
 
 
 
-
-
-
         
 
+if __name__ == "__main__":
+    dataset = 'test'
+    img = 'test/ct1661778873155.0512855.jpg'
+    ref = cv2.imread(img)
+    model = 'modelos/rf-detr_model_top-view.pth'
+    results_all = ri.detect_model(model,img)
 
-dataset = 'test'
-img = 'test/ct1661778873155.0512855.jpg'
-ref = cv2.imread(img)
-model = 'modelos/rf-detr_model_top-view.pth'
-results_all = ri.detect_model(model,img)
+    output = 'output'
+    os.makedirs(output,exist_ok=True)
 
-output = 'output'
-os.makedirs(output,exist_ok=True)
-
-
-debug()
-cv2.destroyAllWindows()
-
-        
-
+    debug()
+    cv2.destroyAllWindows()
