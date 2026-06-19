@@ -251,7 +251,7 @@ def rebarba():
 dataset = 'test'
 img = 'test/ct1661778873155.0512855.jpg'
 ref = cv2.imread(img)
-model = 'rf-detr_model_top-view.pth'
+model = 'modelos/rf-detr_model_top-view.pth'
 results_all = ri.detect_model(model,img)
 
 output = 'output'
