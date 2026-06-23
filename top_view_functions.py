@@ -6,41 +6,6 @@ import math
 import matplotlib.pyplot as plt
 
 
-def debug():
-    while True:
-        q = input('nugget,centralizacao, rugosidade ou rebarba?: ')
-        if q.lower() == 'nugget':
-            imgs = nugget()
-            for img in imgs:
-                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
-
-                cv2.imshow('mascaras',resized)
-                cv2.imshow('bordas',cv2.Canny(resized,50,150))
-                cv2.waitKey(0)
-        elif q.lower() == 'centralizacao':
-            imgs = centralizacao()
-            for img in imgs:
-                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)    
-
-                cv2.imshow('mascaras',resized)
-                cv2.waitKey(0)
-        elif q.lower() == 'rugosidade':
-            dic = rugosidade()
-            for k,v in dic.items():
-                print(f'para {k} rugosidade é {v}')
-        elif q.lower() == 'rebarba':
-            imgs = rebarba()
-            for img in imgs:
-                resized = cv2.resize(img,(1920,1080),cv2.INTER_NEAREST)
-                cv2.imshow('rebarbas',resized)
-                cv2.waitKey(0)
-        elif ord('q'):
-            break
-        else:
-            continue
-        cv2.destroyAllWindows()
-
-
 
 def fit_circle_least_squares(contour):
     pts = contour.reshape(-1, 2)
@@ -76,68 +41,72 @@ def fit_circle_least_squares(contour):
 
 
 
-def nugget():
-    results_nugget = []
-    for result in results_all:
-        filename = result["filename"]
-        masks = result["masks"]
-        
-        zeros_mask = np.zeros(ref.shape,dtype=np.uint8)
-        for i, mask in enumerate(masks):
-            result_img = zeros_mask.copy()
-            result_img[mask] = (255,0,0)
-            results_nugget.append(result_img)
-            ys,xs = np.where(mask)
-            tamanho = len(ys) # quantidade de pixels na mascara -> nos da o desgaste 
-            print(f'mascara {i} da imagem {filename} = {tamanho} pixels' )
 
+class TopViewFun():
+    def __init__(self,frame):
+        self.model = 'eletrodo_measurements/modelos/rf-detr_model_top-view.pth'
+        self.ref = cv2.imread(frame)
+        results_all = ri.detect_model(self.model,frame)
+
+        self.zeros_mask = np.zeros(self.ref.shape,dtype=np.uint8)
+
+        for result in results_all:
+            self.filename = result["filename"]
+            self.masks = result["masks"]
+            self.boxes = result["boxes"]
+            self.scores = result["scores"]
+            self.classes = result["classes"]
+            self.annotated_frame = result["annotated_frame"]
+
+
+    def nugget(self):
+        results_nugget = []
+        results_mask = []
     
-    return results_nugget
-
-def centralizacao():
-    results_centralizacao = []
-    for result in results_all:
-        masks = result["masks"]
-        annotated_frame = result["annotated_frame"]
-
-
-        zeros_mak = np.zeros(ref.shape,dtype=np.uint8)
-
-        for i,mask in enumerate(masks):
+        np_mask = self.zeros_mask.copy()
+        for i, mask in enumerate(self.masks):
+            result_img = np_mask.copy()
+            if i == 1:
+                result_img[mask] = (255,0,0)
+            ys,xs = np.where(mask)
+            size = len(ys) 
+            results_nugget.append({i:size})
+            results_mask.append(result_img)
+            
+        return results_nugget,results_mask
+    
+    def centralizacao(self):
+        results_mask = []
+        
+        np_mask = self.zeros_mask.copy()
+        for i,mask in enumerate(self.masks):
             if i == 0:
-                zeros_mak[mask] = annotated_frame[mask]
+                np_mask[mask] = self.annotated_frame[mask]
                 ys_0,xs_0 = np.where(mask)
             if i == 1:
-                zeros_mak[mask] = annotated_frame[mask]
+                np_mask[mask] = self.annotated_frame[mask]
                 ys_1,xs_1 = np.where(mask)
 
-        print(f'ponto 1: {xs_0.mean(),ys_0.mean()}')
-        print(f'ponto 2: {xs_1.mean(),ys_1.mean()}')
-        cv2.circle(zeros_mak,(int(xs_0.mean()),int(ys_0.mean())),5,(0,0,0),5)
-        cv2.circle(zeros_mak,(int(xs_1.mean()),int(ys_1.mean())),5,(255,255,255),5)
+
+        cv2.circle(np_mask,(int(xs_0.mean()),int(ys_0.mean())),5,(0,0,0),5)
+        cv2.circle(np_mask,(int(xs_1.mean()),int(ys_1.mean())),5,(255,255,255),5)
 
 
         dist = math.dist((xs_0.mean(),ys_0.mean()),(xs_1.mean(),ys_1.mean()))
-        print(f'a distancia euclidiana é: {dist}')
 
-        results_centralizacao.append(zeros_mak)
+        results_mask.append(np_mask)
 
-    return results_centralizacao
+        return dist,np_mask
+    
+    def rugosidade(self):
 
-def rugosidade():
-    results_rugosidade = {}
-    for result in results_all:
-        filename = result["filename"]
-        boxes = result["boxes"]
-
-        maior_bb = boxes[0]
+        results_rugosidade = {}
+        
+        maior_bb = self.boxes[0]
         x1,y1,x2,y2 = maior_bb
         meio_y = (y1+y2) // 2
 
-        img_teste = os.path.join(dataset,filename)
-        teste_img = cv2.imread(img_teste)
-        
-        gray = cv2.cvtColor(teste_img, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(self.ref, cv2.COLOR_BGR2GRAY)
         gaus = cv2.GaussianBlur(gray,(31,31),0)
 
         linha_pixels = gaus[int(meio_y),int(x1):int(x2)]
@@ -148,111 +117,112 @@ def rugosidade():
         grad_mean = np.mean(grad)
         grad_std = np.std(grad)
 
-        print(f'{filename}')
-        print(f"Grad mean: {grad_mean}")
-        print(f"Grad std: {grad_std}")
-
         
         rugos = ''
         if grad_mean > 48:
             rugos = True
-            results_rugosidade[filename] = rugos
+            results_rugosidade[self.filename] = rugos
         elif grad_mean < 38:
             rugos = False
-            results_rugosidade[filename] = rugos
+            results_rugosidade[self.filename] = rugos
         else:
             rugos = None
-            results_rugosidade[filename] = rugos
+            results_rugosidade[self.filename] = rugos
+
+        return results_rugosidade, linha_pixels
     
+    def detect_rebarba(self):
+        np_mask = self.zeros_mask.copy()
+        for i, mask in enumerate(self.masks):
+            if i == 0:
+                np_mask[mask] = (255, 0, 0)
+
+        np_mask = cv2.GaussianBlur(np_mask, (5, 5), 0)
+        edges = cv2.Canny(np_mask, 50, 150)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contour = max(contours, key=cv2.contourArea)
+
+        pts = contour.reshape(-1, 2)
+
+        center_rough, _ = fit_circle_least_squares(contour)
+        cx, cy = center_rough
+        distances = np.sqrt((pts[:, 0] - cx)**2 + (pts[:, 1] - cy)**2)
+        threshold = np.percentile(distances, 80)
+        filtered_pts = pts[distances < threshold]
+
+        center, radius = fit_circle_least_squares(filtered_pts)
+
+        # Anel de referência do background: radius+80 a radius+120
+        # Longe do eletrodo e longe de qualquer rebarba possível
+        bg_outer = np.zeros(self.ref.shape[:2], dtype=np.uint8)
+        bg_inner = np.zeros(self.ref.shape[:2], dtype=np.uint8)
+        cv2.circle(bg_outer, center, radius + 120, 255, -1)
+        cv2.circle(bg_inner, center, radius + 80,  255, -1)
+        bg_ring = cv2.subtract(bg_outer, bg_inner)
+
+        # Cor do background LOCAL (próximo ao anel, mesmo iluminação)
+        bg_coords = np.where(bg_ring > 0)
+        bg_pixels = self.ref[bg_coords].astype(np.float32)
+        bg_color = bg_pixels.mean(axis=0)  # BGR médio local
+
+        # Anel de verificação: radius+50 com espessura 8px
+        ring_mask = np.zeros(self.ref.shape[:2], dtype=np.uint8)
+        cv2.circle(ring_mask, center, radius + 50, 255, 8)
+
+        ring_coords = np.where(ring_mask > 0)
+        ring_pixels = self.ref[ring_coords].astype(np.float32)
+        diff = np.linalg.norm(ring_pixels - bg_color, axis=1)
+
+        color_threshold = 30
+        burr_mask_flat = diff > color_threshold
+        burr_count = burr_mask_flat.sum()
+        has_burrs = burr_count > 10
+
+        # Visualização
+        burr_viz = np.zeros(self.ref.shape[:2], dtype=np.uint8)
+        ys, xs = ring_coords
+        burr_viz[ys[burr_mask_flat], xs[burr_mask_flat]] = 255
+
+        draw_img = self.ref.copy()
+        cv2.circle(draw_img, center, radius,      (0, 255, 0), 2)
+        cv2.circle(draw_img, center, radius + 50, (0, 0, 255), 2)
+        draw_img[burr_viz > 0] = (0, 255, 255)
+
+        return has_burrs, draw_img
+
+
+    def debug(self):
+        nugget_value,nugget_mask = self.nugget()
+        centr_value,centr_mask = self.centralizacao()
+        rugos_value,rugos_graf = self.rugosidade()
+        rebarb_value,rebarb_mask = self.detect_rebarba()
+
+        print(f'foram medidos {nugget_value} para o nugget, {centr_value} para a distância entre \
+              centros, {rugos_value} para rugosidade e {rebarb_value} para rebarba')
+        
         plt.figure()
-        plt.plot(linha_pixels)
+        plt.plot(rugos_graf)
         plt.title("Perfil de intensidade no eixo central")
         plt.xlabel("Posição (pixels)")
         plt.ylabel("Intensidade (0-255)")
-        plt.savefig(f'{filename}')
+        plt.show()
         plt.close()
 
-    return results_rugosidade
+        nugget_debug = cv2.resize(nugget_mask,(1920,1080))
+        centralizacao_debug = cv2.resize(centr_mask,(1920,1080))
+        rebarba_debug = cv2.resize(rebarb_mask,(1920,1080))
 
-
-def rebarba():
-    results_rebarba = []
-    for result in results_all:
-        masks = result['masks']
-        filename = result['filename']
+        cv2.imshow('nugget',nugget_debug)
+        cv2.imshow('centralizacao',centralizacao_debug)
+        cv2.imshow('rebarb',rebarba_debug)
         
-        zeros_mask = np.zeros(ref.shape,dtype=np.uint8)
-        for i,mask in enumerate(masks):
-            if i == 0:
-                zeros_mask[mask] = (255,0,0)
-
-        zeros_mask = cv2.GaussianBlur(zeros_mask, (5,5), 0)
-        edges = cv2.Canny(zeros_mask,50,150)
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contour = max(contours,key=cv2.contourArea)
-        pts = contour.reshape(-1, 2)
-        (x_axis,y_axis),_ = fit_circle_least_squares(contour)
-        distances = np.sqrt((pts[:,0] - x_axis)**2 + (pts[:,1] - y_axis)**2)
-        threshold = np.percentile(distances, 80)
-        filtered_pts = pts[distances < threshold]
-        center, radius = fit_circle_least_squares(filtered_pts)
-
-        # 1. Anel fino na posição radius+50
-        ring_mask = np.zeros(ref.shape[:2], dtype=np.uint8)
-        cv2.circle(ring_mask, center, radius + 50, 255, 8)  # espessura do anel
-
-        # 2. Estima a cor do background (cantos da imagem, longe do objeto)
-        h, w = ref.shape[:2]
-        margin = 30
-        corners = [
-            ref[0:margin, 0:margin],
-            ref[0:margin, w-margin:w],
-            ref[h-margin:h, 0:margin],
-            ref[h-margin:h, w-margin:w],
-        ]
-        bg_color = np.mean([c.mean(axis=(0,1)) for c in corners], axis=0)  # BGR médio
-
-        # 3. Diferença de cor dos pixels no anel vs background
-        ring_pixels_coords = np.where(ring_mask > 0)
-        ring_pixels = ref[ring_pixels_coords].astype(np.float32)  # shape (N, 3)
-
-        diff = np.linalg.norm(ring_pixels - bg_color, axis=1)  # distância euclidiana no espaço BGR
-
-        # 4. Pixels muito diferentes do background = objeto = rebarba
-        color_threshold = 30  # ajuste conforme a imagem
-        burr_mask_flat = diff > color_threshold
-        burr_count = burr_mask_flat.sum()
-        has_burrs = burr_count > 10  # mínimo de pixels para evitar ruído
-
-        # 5. Reconstrói máscara de rebarbas para visualização
-        burr_viz = np.zeros(ref.shape[:2], dtype=np.uint8)
-        ys, xs = ring_pixels_coords
-        burr_viz[ys[burr_mask_flat], xs[burr_mask_flat]] = 255
-
-        # Visualização
-        draw_img = ref.copy()
-        cv2.circle(draw_img, center, radius,      (0, 255, 0), 2)
-        cv2.circle(draw_img, center, radius + 50, (0, 0, 255), 2)
-        draw_img[burr_viz > 0] = (0, 255, 255)  # rebarba em amarelo
-
-        print(f"Rebarbas: {'SIM' if has_burrs else 'NÃO'} ({burr_count} pixels no anel)")
-        results_rebarba.append(draw_img)
-
-    return results_rebarba
 
 
 
         
+
+
+ 
 
 if __name__ == "__main__":
-    dataset = 'test'
-    img = 'test/ct1661778873155.0512855.jpg'
-    ref = cv2.imread(img)
-    model = 'modelos/rf-detr_model_top-view.pth'
-    results_all = ri.detect_model(model,img)
-
-    output = 'output'
-    os.makedirs(output,exist_ok=True)
-
-    debug()
-    cv2.destroyAllWindows()
+    pass

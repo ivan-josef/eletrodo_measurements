@@ -1,12 +1,11 @@
 import running_inference as ri
 import numpy as np
 
-model = 'modelos/checkpoint_best_total.pth'
-calib_img = 'calib_img.jpg'
+model = 'eletrodo_measurements/modelos/rf-detr-SEGM-lateral.pth'
 
 def calib(calib_path):
     
-    results_all = ri.detect_model(model,calib_path,1296)
+    results_all = ri.detect_model(model,calib_path)
 
     result = results_all[0]
     boxes = result["boxes"]

@@ -3,22 +3,20 @@ import cv2
 import numpy as np
 import running_inference as ri 
 import pandas as pd 
-import calibracao_desgaste as cal
+import dicionario_ref as ref
 
+model = 'eletrodo_measurements/modelos/rf-detr-SEGM-lateral.pth'
 
-model = 'modelos/rf-detr-SEGM-lateral.pth'
-calib_img = 'test_lateral-view/ct155_1.jpg'
 
 def desgaste(images_path):
-    resolução = cal.calib(calib_img) # ? 
+    resolução = ref.resolution
     alturas_dict = []
-    results_all = ri.detect_model(model,images_path,1296)
+    results_all = ri.detect_model(model,images_path)
 
     for result in results_all:
         classe = result["classes"]
         filename = result["filename"]
         boxes = result["boxes"]
-        annotated_frame = result["annotated_frame"]  
 
         if boxes is None or len(boxes) == 0:
             print(f"Sem detecção: {filename}")
