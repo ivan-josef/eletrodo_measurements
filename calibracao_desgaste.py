@@ -1,7 +1,7 @@
 import running_inference as ri
 import numpy as np
 
-model = 'eletrodo_measurements/modelos/rf-detr-SEGM-lateral.pth'
+model = 'modelos/rf-detr-SEGM-lateral.pth'
 
 def calib(calib_path):
     

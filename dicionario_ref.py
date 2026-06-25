@@ -1,7 +1,7 @@
 import calibracao_desgaste as calibracao
 # calibração
 
-calib_img = 'eletrodo_measurements/calib_img.jpg'
+calib_img = 'calib_img.jpg'
 resolution = calibracao.calib(calib_img)
 
 # medidas de eletrodos

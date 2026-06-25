@@ -1,11 +1,9 @@
-import os
-import cv2
+
 import numpy as np
 import running_inference as ri 
-import pandas as pd 
 import dicionario_ref as ref
 
-model = 'eletrodo_measurements/modelos/rf-detr-SEGM-lateral.pth'
+model = 'modelos/rf-detr-SEGM-lateral.pth'
 
 
 def desgaste(images_path):
