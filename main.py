@@ -10,6 +10,8 @@ import desgaste as lat
 import dicionario_ref as ref
 import cv2
 import calibracao_desgaste as calibracao
+import matplotlib.pyplot as plt
+
 
 
 
@@ -30,23 +32,19 @@ resolution = calibracao.calib('calib_img.jpg')
 
 # frames = [lateral,superior]
 
+img_lateral = frames[0]
+img_tview = frames[1]
+frames = []
+
 def main():
 
-    img_lateral = frames[0]
-    img_tview = frames[1]
-    frames = []
 
-    result_desgaste = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
-    print(result_desgaste)
+    result_desgaste,_ = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
     classe = result_desgaste[0]['classe'][0]
-    print(classe)
     altura_medida = result_desgaste[0]['altura']
-    print(altura_medida)
 
     altura_ref = ref.ref_por_classe[classe]['altura']
     desgaste = altura_ref - altura_medida
-
-    print(f'o desgaste é {desgaste}')
 
     # top view
 
@@ -66,8 +64,50 @@ def main():
 
     manager.shutdown()
 
-obj_top_view.debug()
-cv2.destroyAllWindows()
+def debug():
+
+    result_desgaste,desgaste_mask = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
+
+    
+    obj_top_view = top.TopViewFun(img_tview,annotate=True)
+    results_nugget,nugget_mask = obj_top_view.nugget()
+
+    #centralizacao
+    results_centralizacao,centralizacao_mask = obj_top_view.centralizacao()
+
+    #rugosidade     
+    results_rugosidade,rugos_mask = obj_top_view.rugosidade()
+
+    # rebarba
+    results_rebarba,rebarb_mask = obj_top_view.detect_rebarba()  
+
+    print(f'''
+Desgaste: {result_desgaste}
+Nugget: {results_nugget} 
+Descentralizacao: {results_centralizacao}  
+Rugosidade: {results_rugosidade}  
+Rebarba: {results_rebarba} 
+    ''')
+
+    nugget_debug = cv2.resize(nugget_mask,(1920,1080))
+    centralizacao_debug = cv2.resize(centralizacao_mask,(1920,1080))
+    rebarba_debug = cv2.resize(rebarb_mask,(1920,1080))
+    desgaste_debug = cv2.resize(desgaste_mask,(1920,1080))
+
+    cv2.imshow('nugget',nugget_debug)
+    cv2.imshow('centralizacao',centralizacao_debug)
+    cv2.imshow('rebarb',rebarba_debug)    
+    cv2.imshow('desgaste',desgaste_debug)      
+  
+    cv2.waitKey(0)  
+
+    plt.figure()
+    plt.plot(rugos_mask)
+    plt.title("Perfil de intensidade no eixo central")
+    plt.xlabel("Posição (pixels)")
+    plt.ylabel("Intensidade (0-255)")
+    plt.show()
+    plt.close()
 
 
 

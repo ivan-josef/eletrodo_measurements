@@ -43,12 +43,14 @@ def desgaste(frame,resolution,annotate=False,crop_box = None):
         "altura":altura
     })
 
-    # H,W = annotated_frame.shape[:2]
-    # center = W // 2 + 77
-    # cv2.line(annotated_frame,(int(center),int(y2)),(int(center),int(y1)),(255,0,0),2)
-    # cv2.imwrite(filename,annotated_frame)
+    if annotate:
+        annotated_frame = result["annotated_frame"]
+        H,W = annotated_frame.shape[:2]
+        center = W // 2 + 77
+        cv2.line(annotated_frame,(int(center),int(y2)),(int(center),int(y1)),(255,0,0),2)
+        
 
-    return alturas_dict
+    return alturas_dict, annotated_frame
 
 
 if __name__ == "__main__":

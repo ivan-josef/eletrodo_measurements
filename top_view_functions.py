@@ -2,7 +2,6 @@ import running_inference as ri
 import cv2
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from model_manager import manager
 
 
@@ -206,37 +205,6 @@ class TopViewFun():
         return has_burrs, draw_img
 
 
-    def debug(self):
-        nugget_value,nugget_mask = self.nugget()
-        centr_value,centr_mask = self.centralizacao()
-        rugos_value,rugos_graf = self.rugosidade()
-        rebarb_value,rebarb_mask = self.detect_rebarba()
-
-        print(f'''
-Nugget: {nugget_value} 
-Descentralizacao: {centr_value}  
-Rugosidade: {rugos_value}  
-Rebarba: {rebarb_value} 
-            ''')
-
-        nugget_debug = cv2.resize(nugget_mask,(1920,1080))
-        centralizacao_debug = cv2.resize(centr_mask,(1920,1080))
-        rebarba_debug = cv2.resize(rebarb_mask,(1920,1080))
-
-        cv2.imshow('nugget',nugget_debug)
-        cv2.imshow('centralizacao',centralizacao_debug)
-        cv2.imshow('rebarb',rebarba_debug)      
-        cv2.waitKey(0)  
-
-        plt.figure()
-        plt.plot(rugos_graf)
-        plt.title("Perfil de intensidade no eixo central")
-        plt.xlabel("Posição (pixels)")
-        plt.ylabel("Intensidade (0-255)")
-        plt.show()
-        plt.close()
-
-        
-        
+    
 if __name__ == "__main__":
     pass
