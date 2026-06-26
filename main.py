@@ -9,7 +9,8 @@ manager.warmup([
     'modelos/rf-detr_model_top-view.pth'
 ])
 
-
+import calibracao_desgaste as calibracao
+resolution = calibracao.calib('calib_img.jpg')
 
 #abrir a camera
 #crop
@@ -27,7 +28,7 @@ manager.use('modelos/rf-detr-SEGM-lateral.pth')
 
 img_lateral = 'test_lateral-view/ct155_1.jpg'
 
-result_desgaste = lat.desgaste(img_lateral) # [{'classe': [2], 'altura': np.float32(23.0)}]
+result_desgaste = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
 print(result_desgaste)
 classe = result_desgaste[0]['classe'][0]
 print(classe)

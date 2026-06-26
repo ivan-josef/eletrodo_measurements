@@ -41,10 +41,13 @@ def fit_circle_least_squares(contour):
 
 class TopViewFun():
 
-    MODEL = 'modelos/rf-detr_model_top-view.pth'
     def __init__(self,frame,annotate = False, crop_box = None):
 
+
         img = cv2.imread(frame)
+
+        self.zeros_mask = np.zeros(img.shape,dtype=np.uint8)
+
         if img is None:
             raise FileNotFoundError(f"Imagem não encontrada: {frame}") 
         
@@ -56,11 +59,11 @@ class TopViewFun():
         self._shape = img.shape
         
         results_all = ri.detect_model(
-            self.MODEL, frame, annotate=annotate
+
+            img, annotate=annotate
         )
 
         result = results_all[0] 
-        self.filename = result["filename"]
         self.masks = result["masks"]           # list[np.ndarray bool H×W]
         self.boxes = result["boxes"]           # np.ndarray (N,4) | None
         self.scores = result["scores"]
@@ -73,7 +76,7 @@ class TopViewFun():
     
         ref_copy = self.ref.copy()
         mask = self.masks[1]
-        ref_copy[mask] = self.annotated_frame[mask]
+        ref_copy[mask] = self._annotated[mask]
         ys,_ = np.where(mask)
         size = len(ys) 
             

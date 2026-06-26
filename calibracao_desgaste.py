@@ -1,11 +1,13 @@
 import running_inference as ri
 import numpy as np
+import cv2
 
-model = 'modelos/rf-detr-SEGM-lateral.pth'
 
 def calib(calib_path):
+
+    img = cv2.imread(calib_path)
     
-    results_all = ri.detect_model(model,calib_path)
+    results_all = ri.detect_model(img)
 
     result = results_all[0]
     boxes = result["boxes"]
