@@ -3,6 +3,7 @@ import numpy as np
 import running_inference as ri 
 import dicionario_ref as ref
 import cv2
+from model_manager import manager
 
 def desgaste(frame,resolution,annotate=False,crop_box = None):
     resolucao = resolution
@@ -16,6 +17,9 @@ def desgaste(frame,resolution,annotate=False,crop_box = None):
     if crop_box is not None:
         x1,y1,x2,y2 = crop_box
         img = img[y1:y2,x1:x2]
+
+
+    manager.use('modelos/rf-detr-SEGM-lateral.pth')
 
     results_all = ri.detect_model(
         img, annotate=annotate

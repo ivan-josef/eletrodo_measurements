@@ -1,7 +1,3 @@
-import top_view_functions as top
-import desgaste as lat
-import dicionario_ref as ref
-import cv2
 from model_manager import manager
 
 manager.warmup([
@@ -9,7 +5,14 @@ manager.warmup([
     'modelos/rf-detr_model_top-view.pth'
 ])
 
+import top_view_functions as top
+import desgaste as lat
+import dicionario_ref as ref
+import cv2
 import calibracao_desgaste as calibracao
+
+
+
 resolution = calibracao.calib('calib_img.jpg')
 
 #abrir a camera
@@ -24,48 +27,48 @@ resolution = calibracao.calib('calib_img.jpg')
 #relatorio
 
 # lateral view
-manager.use('modelos/rf-detr-SEGM-lateral.pth')
 
-img_lateral = 'test_lateral-view/ct155_1.jpg'
+# frames = [lateral,superior]
 
-result_desgaste = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
-print(result_desgaste)
-classe = result_desgaste[0]['classe'][0]
-print(classe)
-altura_medida = result_desgaste[0]['altura']
-print(altura_medida)
+def main():
 
-altura_ref = ref.ref_por_classe[classe]['altura']
-desgaste = altura_ref - altura_medida
+    img_lateral = frames[0]
+    img_tview = frames[1]
+    frames = []
 
-print(f'o desgaste é {desgaste}')
+    result_desgaste = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
+    print(result_desgaste)
+    classe = result_desgaste[0]['classe'][0]
+    print(classe)
+    altura_medida = result_desgaste[0]['altura']
+    print(altura_medida)
 
+    altura_ref = ref.ref_por_classe[classe]['altura']
+    desgaste = altura_ref - altura_medida
 
-manager.use('modelos/rf-detr_model_top-view.pth')
+    print(f'o desgaste é {desgaste}')
 
-img_tview = 'test_top-view/rugos.jpg'
+    # top view
 
+    obj_top_view = top.TopViewFun(img_tview,annotate=True)
+    #nugget
 
-# top view
+    results_nugget,_ = obj_top_view.nugget()
 
-obj_top_view = top.TopViewFun(img_tview,annotate=True)
-#nugget
+    #centralizacao
+    results_centralizacao,_ = obj_top_view.centralizacao()
 
-results_nugget,_ = obj_top_view.nugget()
+    #rugosidade     
+    results_rugosidade,_ = obj_top_view.rugosidade()
 
-#centralizacao
-results_centralizacao,_ = obj_top_view.centralizacao()
+    # rebarba
+    results_rebarba,_ = obj_top_view.detect_rebarba()
 
-#rugosidade 
-results_rugosidade,_ = obj_top_view.rugosidade()
-
-# rebarba
-results_rebarba,_ = obj_top_view.detect_rebarba()
+    manager.shutdown()
 
 obj_top_view.debug()
 cv2.destroyAllWindows()
 
-manager.shutdown()
 
 
 

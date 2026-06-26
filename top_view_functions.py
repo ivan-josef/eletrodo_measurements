@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from model_manager import manager
 
 
 
@@ -57,6 +58,9 @@ class TopViewFun():
         
         self.ref = img
         self._shape = img.shape
+
+        manager.use('modelos/rf-detr_model_top-view.pth')
+
         
         results_all = ri.detect_model(
 
