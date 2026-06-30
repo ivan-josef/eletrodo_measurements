@@ -1,18 +1,16 @@
 from model_manager import manager
-
-manager.warmup([
-    'modelos/rf-detr-SEGM-lateral.pth',
-    'modelos/rf-detr_model_top-view.pth'
-])
-
 import top_view_functions as top
 import desgaste as lat
 import dicionario_ref as ref
 import cv2
 import calibracao_desgaste as calibracao
 import matplotlib.pyplot as plt
+import os
 
-
+manager.warmup([
+    'modelos/rf-detr-SEGM-lateral.pth',
+    'modelos/rf-detr_model_top-view.pth'
+])
 
 
 resolution = calibracao.calib('calib_img.jpg')
@@ -32,8 +30,11 @@ resolution = calibracao.calib('calib_img.jpg')
 
 # frames = [lateral,superior]
 
-img_lateral = frames[0]
-img_tview = frames[1]
+
+
+
+img_lateral = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/27_lat.jpg'
+img_tview = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/27.jpg'
 frames = []
 
 def main():
@@ -48,7 +49,7 @@ def main():
 
     # top view
 
-    obj_top_view = top.TopViewFun(img_tview,annotate=True)
+    obj_top_view = top.TopViewFun(img_tview)
     #nugget
 
     results_nugget,_ = obj_top_view.nugget()
@@ -77,15 +78,20 @@ def debug():
 
     #rugosidade     
     results_rugosidade,rugos_mask = obj_top_view.rugosidade()
+    rugosidade_val = obj_top_view.grad_mean
+    
 
     # rebarba
-    results_rebarba,rebarb_mask = obj_top_view.detect_rebarba()  
+    results_rebarba,is_poligonal,outlier_ratio,rebarb_mask = obj_top_view.detect_rebarba()  
 
     print(f'''
 Desgaste: {result_desgaste}
 Nugget: {results_nugget} 
 Descentralizacao: {results_centralizacao}  
-Rugosidade: {results_rugosidade}  
+Rugosidade: {results_rugosidade}
+Valor de gradiente: {rugosidade_val}
+Poligonal: {is_poligonal}
+Outliers: {outlier_ratio}
 Rebarba: {results_rebarba} 
     ''')
 
@@ -110,6 +116,5 @@ Rebarba: {results_rebarba}
     plt.close()
 
 
-
-
-
+if __name__ == "__main__":
+    debug()

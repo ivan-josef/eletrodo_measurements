@@ -126,11 +126,11 @@ class TopViewFun():
 
         
         grad = np.abs(np.diff(linha_pixels))
-        grad_mean = np.mean(grad)
+        self.grad_mean = np.mean(grad)
         
-        if grad_mean > 48:
+        if self.grad_mean > 48:
             rugos = True
-        elif grad_mean < 38:
+        elif self.grad_mean < 38:
             rugos = False
         else:
             rugos = None
@@ -162,6 +162,14 @@ class TopViewFun():
         filtered_pts = pts[distances < threshold]
 
         center, radius = fit_circle_least_squares(filtered_pts)
+
+        # --- Detecção de poligonal (aproveita pts, center, radius já calculados) ---
+        cx, cy = center
+        all_distances = np.sqrt((pts[:, 0] - cx)**2 + (pts[:, 1] - cy)**2)
+        deviation = np.abs(all_distances - radius)
+        outlier_mask = deviation > 15
+        outlier_ratio = outlier_mask.sum() / len(pts)
+        is_polygonal = outlier_ratio > 0.25
 
         H, W = self._shape[:2]
 
@@ -202,7 +210,12 @@ class TopViewFun():
         ys, xs = ring_coords
         draw_img[ys[burr_mask_flat], xs[burr_mask_flat]] = (0, 255, 255)
 
-        return has_burrs, draw_img
+
+        # Outliers do contorno em vermelho (poligonal)
+        for pt, is_out in zip(pts[outlier_mask], [True]*outlier_mask.sum()):
+            cv2.circle(draw_img, tuple(pt), 2, (0, 0, 255), -1)
+
+        return has_burrs, is_polygonal, outlier_ratio, draw_img
 
 
     
