@@ -33,14 +33,15 @@ resolution = calibracao.calib('calib_img.jpg')
 
 
 
-img_lateral = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/27_lat.jpg'
-img_tview = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/27.jpg'
-frames = []
+img_lateral = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/38_lat.jpg'
+img_tview = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/38.jpg'
 
 def main():
 
 
-    result_desgaste,_ = lat.desgaste(img_lateral,resolution,annotate=True) # [{'classe': [2], 'altura': np.float32(23.0)}]
+    resultados = {}
+
+    result_desgaste,_ = lat.desgaste(img_lateral,resolution) # [{'classe': [2], 'altura': np.float32(23.0)}]
     classe = result_desgaste[0]['classe'][0]
     altura_medida = result_desgaste[0]['altura']
 
@@ -61,7 +62,16 @@ def main():
     results_rugosidade,_ = obj_top_view.rugosidade()
 
     # rebarba
-    results_rebarba,_ = obj_top_view.detect_rebarba()
+    results_rebarba,is_poligonal,_,_ = obj_top_view.detect_rebarba()
+
+    resultados['Desgaste: '] = desgaste
+    resultados['Diâmetro do nugget: '] = results_nugget 
+    resultados['Descentralização: '] = results_centralizacao
+    resultados['Rugosidade: '] = results_rugosidade
+    resultados['Rebarba: '] = results_rebarba
+    resultados['Poligonal: '] = is_poligonal
+
+    print(resultados)
 
     manager.shutdown()
 

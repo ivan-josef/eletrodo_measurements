@@ -77,11 +77,13 @@ class TopViewFun():
 
     def nugget(self):
     
-        ref_copy = self.ref.copy()
         mask = self.masks[1]
-        ref_copy[mask] = self._annotated[mask]
         ys,_ = np.where(mask)
         size = len(ys) 
+
+        ref_copy = self.ref.copy()
+        if self._annotated is not None:
+            ref_copy[mask] = self._annotated[mask]
             
         return size, ref_copy
     

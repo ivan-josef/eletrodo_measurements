@@ -42,11 +42,12 @@ def desgaste(frame,resolution,annotate=False,crop_box = None):
         "classe":classe,
         "altura":altura
     })
-
+    
+    annotated_frame = None
     if annotate:
         annotated_frame = result["annotated_frame"]
         H,W = annotated_frame.shape[:2]
-        center = W // 2 + 77
+        center = W // 2 + 150
         cv2.line(annotated_frame,(int(center),int(y2)),(int(center),int(y1)),(255,0,0),2)
         
 
