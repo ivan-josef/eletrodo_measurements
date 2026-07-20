@@ -46,10 +46,11 @@ class TopViewFun():
 
         img = cv2.imread(frame)
 
-        self.zeros_mask = np.zeros(img.shape,dtype=np.uint8)
-
         if img is None:
             raise FileNotFoundError(f"Imagem não encontrada: {frame}") 
+        
+        self.zeros_mask = np.zeros(img.shape,dtype=np.uint8)
+
         
         if crop_box is not None:
             x1,y1,x2,y2 = crop_box
@@ -74,10 +75,30 @@ class TopViewFun():
         # annotated_frame só existe se annotate=True
         self._annotated = result["annotated_frame"]
 
+        self.detections = {}
+
+        for i, classe in enumerate(self.classes):
+            self.detections[int(classe)] = {
+                "mask": self.masks[i],
+                "box": self.boxes[i],
+                "score": self.scores[i],
+            }
+
+        if 1 not in self.detections:
+            raise ValueError("Classe 1 (eletrodo) não detectada.")
+
+        if 2 not in self.detections:
+            raise ValueError("Classe 2 (nugget) não detectada.")
+
+        self.electrode_mask = self.detections[1]["mask"]
+        self.electrode_box = self.detections[1]["box"]
+
+        self.nugget_mask = self.detections[2]["mask"]
+        self.nugget_box = self.detections[2]["box"]
 
     def nugget(self):
     
-        mask = self.masks[1]
+        mask = self.nugget_mask
         ys,_ = np.where(mask)
         size = len(ys) 
 
@@ -85,13 +106,13 @@ class TopViewFun():
         if self._annotated is not None:
             ref_copy[mask] = self._annotated[mask]
             
-        return size, ref_copy
+        return size, ref_copy, self._annotated
     
     def centralizacao(self):
 
         np_mask = self.zeros_mask.copy()
-        mask0 = self.masks[0]
-        mask1 = self.masks[1]
+        mask0 = self.electrode_mask
+        mask1 = self.nugget_mask
         if mask0 is None or mask1 is None:
             return None,None
         
@@ -116,7 +137,7 @@ class TopViewFun():
     def rugosidade(self):
 
     
-        x1,y1,x2,y2 = self.boxes[0]
+        x1,y1,x2,y2 = self.electrode_box
         meio_y = int((y1+y2) // 2)
 
         gray = cv2.cvtColor(self.ref, cv2.COLOR_BGR2GRAY)
@@ -141,7 +162,7 @@ class TopViewFun():
     
     def detect_rebarba(self):
 
-        mask0 = self.masks[0]
+        mask0 = self.electrode_mask
         np_mask = self.zeros_mask.copy()
  
         np_mask[mask0] = 255

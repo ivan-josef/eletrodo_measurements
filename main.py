@@ -81,7 +81,7 @@ def debug():
 
     
     obj_top_view = top.TopViewFun(img_tview,annotate=True)
-    results_nugget,nugget_mask = obj_top_view.nugget()
+    results_nugget,nugget_mask, annotated = obj_top_view.nugget()
 
     #centralizacao
     results_centralizacao,centralizacao_mask = obj_top_view.centralizacao()
@@ -110,6 +110,7 @@ Rebarba: {results_rebarba}
     rebarba_debug = cv2.resize(rebarb_mask,(1920,1080))
     desgaste_debug = cv2.resize(desgaste_mask,(1920,1080))
 
+    cv2.imshow('annotated',annotated)      
     cv2.imshow('nugget',nugget_debug)
     cv2.imshow('centralizacao',centralizacao_debug)
     cv2.imshow('rebarb',rebarba_debug)    

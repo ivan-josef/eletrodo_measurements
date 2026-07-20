@@ -10,15 +10,17 @@ def detect_model(frame,threshold = 0.5,annotate = False):
     results_all = []
     H,W = frame.shape[:2]
 
+    input_size = 640
+
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    pil_img = Image.fromarray(img_rgb).resize((640,640))
+    pil_img = Image.fromarray(img_rgb).resize((input_size,input_size))
     del img_rgb
 
     results = manager.predict(pil_img,threshold=threshold)
     del pil_img
 
-    scale_y = H / 640
-    scale_x = W / 640
+    scale_y = H / input_size
+    scale_x = W / input_size
 
     boxes = None
     if results.xyxy is not None:        
