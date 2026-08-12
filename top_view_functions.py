@@ -49,15 +49,13 @@ class TopViewFun():
         if img is None:
             raise FileNotFoundError(f"Imagem não encontrada: {frame}") 
         
-        self.zeros_mask = np.zeros(img.shape,dtype=np.uint8)
-
-        
         if crop_box is not None:
             x1,y1,x2,y2 = crop_box
             img = img[y1:y2,x1:x2]
         
         self.ref = img
         self._shape = img.shape
+        self.zeros_mask = np.zeros(img.shape,dtype=np.uint8)
 
         manager.use('modelos/rf-detr_model_top-view.pth')
 
@@ -78,23 +76,33 @@ class TopViewFun():
         self.detections = {}
 
         for i, classe in enumerate(self.classes):
-            self.detections[int(classe)] = {
-                "mask": self.masks[i],
-                "box": self.boxes[i],
-                "score": self.scores[i],
-            }
+            classe = int(classe)
+            score = float(self.scores[i])
 
-        if 1 not in self.detections:
-            raise ValueError("Classe 1 (eletrodo) não detectada.")
+            if (
+                classe not in self.detections
+                or score > self.detections[classe]["score"]
+            ):
+                self.detections[classe] = {
+                    "mask": self.masks[i],
+                    "box": self.boxes[i],
+                    "score": score,
+                }
 
-        if 2 not in self.detections:
-            raise ValueError("Classe 2 (nugget) não detectada.")
+        ELECTRODE_CLASS_ID = 1  # CE
+        NUGGET_CLASS_ID = 2     # CI
 
-        self.electrode_mask = self.detections[1]["mask"]
-        self.electrode_box = self.detections[1]["box"]
+        if ELECTRODE_CLASS_ID not in self.detections:
+            raise ValueError("Classe 2 (CE/eletrodo) não detectada.")
 
-        self.nugget_mask = self.detections[2]["mask"]
-        self.nugget_box = self.detections[2]["box"]
+        if NUGGET_CLASS_ID not in self.detections:
+            raise ValueError("Classe 3 (CI/nugget) não detectada.")
+
+        self.electrode_mask = self.detections[ELECTRODE_CLASS_ID]["mask"]
+        self.electrode_box = self.detections[ELECTRODE_CLASS_ID]["box"]
+
+        self.nugget_mask = self.detections[NUGGET_CLASS_ID]["mask"]
+        self.nugget_box = self.detections[NUGGET_CLASS_ID]["box"]
 
     def nugget(self):
     
@@ -103,10 +111,11 @@ class TopViewFun():
         size = len(ys) 
 
         ref_copy = self.ref.copy()
+        print(ref_copy.dtype)
         if self._annotated is not None:
             ref_copy[mask] = self._annotated[mask]
             
-        return size, ref_copy, self._annotated
+        return size, ref_copy
     
     def centralizacao(self):
 

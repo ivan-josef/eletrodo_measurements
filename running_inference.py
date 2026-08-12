@@ -10,7 +10,7 @@ def detect_model(frame,threshold = 0.5,annotate = False):
     results_all = []
     H,W = frame.shape[:2]
 
-    input_size = 640
+    input_size = 1296
 
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(img_rgb).resize((input_size,input_size))

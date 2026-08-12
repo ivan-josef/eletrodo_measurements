@@ -1,7 +1,6 @@
 
 import numpy as np
 import running_inference as ri 
-import dicionario_ref as ref
 import cv2
 from model_manager import manager
 
@@ -26,7 +25,6 @@ def desgaste(frame,resolution,annotate=False,crop_box = None):
     )
     
     result = results_all[0]
-    classe = result["classes"]
     boxes = result["boxes"]
 
     if boxes is None or len(boxes) == 0:
@@ -35,6 +33,7 @@ def desgaste(frame,resolution,annotate=False,crop_box = None):
 
     heights = boxes[:,3] - boxes[:,1]
     best_idx = int(np.argmax(heights))
+    classe = int(result["classes"][best_idx])
     x1,y1,x2,y2 = boxes[best_idx]
 
     altura = (y2 - y1) * resolucao

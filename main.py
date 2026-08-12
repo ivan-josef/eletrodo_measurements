@@ -1,11 +1,21 @@
+import numpy as np
+import cv2
+
+teste = np.zeros((300, 300, 3), dtype=np.uint8)
+teste[:] = (0, 255, 0)
+
+cv2.namedWindow("TESTE_INICIAL", cv2.WINDOW_NORMAL)
+cv2.imshow("TESTE_INICIAL", teste)
+cv2.waitKey(1)
+
+
 from model_manager import manager
 import top_view_functions as top
 import desgaste as lat
 import dicionario_ref as ref
-import cv2
-import calibracao_desgaste as calibracao
 import matplotlib.pyplot as plt
-import os
+import calibracao_desgaste as calibracao
+
 
 manager.warmup([
     'modelos/rf-detr-SEGM-lateral.pth',
@@ -13,7 +23,6 @@ manager.warmup([
 ])
 
 
-resolution = calibracao.calib('calib_img.jpg')
 
 #abrir a camera
 #crop
@@ -36,13 +45,16 @@ resolution = calibracao.calib('calib_img.jpg')
 img_lateral = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/38_lat.jpg'
 img_tview = '/home/ivan/Documentos/eletrode_raw/frames/eletrodos_caixa_nova_rastreados/ct155/38.jpg'
 
+resolution = calibracao.calib('calib_img.jpg')
+
+
 def main():
 
 
     resultados = {}
 
     result_desgaste,_ = lat.desgaste(img_lateral,resolution) # [{'classe': [2], 'altura': np.float32(23.0)}]
-    classe = result_desgaste[0]['classe'][0]
+    classe = result_desgaste[0]['classe']
     altura_medida = result_desgaste[0]['altura']
 
     altura_ref = ref.ref_por_classe[classe]['altura']
@@ -57,7 +69,6 @@ def main():
 
     #centralizacao
     results_centralizacao,_ = obj_top_view.centralizacao()
-
     #rugosidade     
     results_rugosidade,_ = obj_top_view.rugosidade()
 
@@ -81,7 +92,8 @@ def debug():
 
     
     obj_top_view = top.TopViewFun(img_tview,annotate=True)
-    results_nugget,nugget_mask, annotated = obj_top_view.nugget()
+    results_nugget,nugget_mask = obj_top_view.nugget()
+    print(nugget_mask.dtype)
 
     #centralizacao
     results_centralizacao,centralizacao_mask = obj_top_view.centralizacao()
@@ -110,7 +122,6 @@ Rebarba: {results_rebarba}
     rebarba_debug = cv2.resize(rebarb_mask,(1920,1080))
     desgaste_debug = cv2.resize(desgaste_mask,(1920,1080))
 
-    cv2.imshow('annotated',annotated)      
     cv2.imshow('nugget',nugget_debug)
     cv2.imshow('centralizacao',centralizacao_debug)
     cv2.imshow('rebarb',rebarba_debug)    
